@@ -9,13 +9,12 @@ fn parse(input: &str) -> Vec<i32> {
         .trim()
         .lines()
         .map(|line| {
-            let direction = &line[0..1];
             let num = &line[1..];
             let num: i32 = atoi(num.as_bytes()).expect("Always a number.");
-            match direction {
-                "L" => num.neg(),
-                "R" => num,
-                _ => unreachable!(),
+            if line.starts_with("L") {
+                num.neg()
+            } else {
+                num
             }
         })
         .collect()
@@ -24,22 +23,24 @@ fn parse(input: &str) -> Vec<i32> {
 pub fn part_one(input: &str) -> Option<u64> {
     let mut position = 50;
     let nums = parse(input);
-    Some(nums.iter().fold(0, |acc, rotation| {
+    let mut zeros = 0;
+
+    for rotation in nums {
         position += rotation;
 
         if position % 100 == 0 {
-            return acc + 1;
+            zeros += 1;
         }
-        acc
-    }))
+    }
+    Some(zeros)
 }
 
 pub fn part_two(input: &str) -> Option<i32> {
     let mut position = 50;
     let nums = parse(input);
-    Some(nums.into_iter().fold(0, |acc, rotation| {
-        let mut spins = 0;
+    let mut spins = 0;
 
+    for rotation in nums {
         if rotation >= 0 {
             spins += (position + rotation) / 100;
         } else {
@@ -47,8 +48,9 @@ pub fn part_two(input: &str) -> Option<i32> {
         }
 
         position = (position + rotation).rem_euclid(100);
-        acc + spins
-    }))
+    }
+
+    Some(spins)
 }
 
 #[cfg(test)]
