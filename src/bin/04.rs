@@ -55,13 +55,11 @@ pub fn part_one(input: &str) -> Option<u64> {
                 continue;
             }
 
-            let mut adjacent = 0;
-            for x in get_adjacent(&grid, i as i32, j as i32) {
-                if x == Cell::Roll {
-                    adjacent += 1;
-                }
-            }
-            if adjacent < 4 {
+            if get_adjacent(&grid, i as i32, j as i32)
+                .filter(|cell| *cell == Cell::Roll)
+                .count()
+                < 4
+            {
                 safe_rolls += 1;
             }
         }
@@ -75,28 +73,21 @@ pub fn part_two(input: &str) -> Option<u64> {
     let mut total = 0;
     loop {
         let mut safe_rolls = 0;
-        let mut safe_coords = Vec::new();
-        for (y, row) in grid.iter().enumerate() {
-            for (x, cell) in row.iter().enumerate() {
-                if *cell == Cell::Empty {
+        for y in 0..grid.len() {
+            for x in 0..grid.len() {
+                if grid[y][x] == Cell::Empty {
                     continue;
                 }
 
-                let mut adjacent = 0;
-                for cell in get_adjacent(&grid, x as i32, y as i32) {
-                    if cell == Cell::Roll {
-                        adjacent += 1;
-                    }
-                }
-                if adjacent < 4 {
+                if get_adjacent(&grid, x as i32, y as i32)
+                    .filter(|cell| *cell == Cell::Roll)
+                    .count()
+                    < 4
+                {
                     safe_rolls += 1;
-                    safe_coords.push((x, y));
+                    grid[y][x] = Cell::Removed;
                 }
             }
-        }
-
-        for (x, y) in safe_coords {
-            grid[y][x] = Cell::Removed;
         }
 
         // kludgy I hate this. Why is the safe_rolls detecting all safe items total rather than just the newly safe ones for this outer iteration??????
