@@ -7,23 +7,20 @@ enum Cell {
     Roll,
 }
 
-fn parse(input: &str) -> Vec<Vec<Cell>> {
+fn parse(input: &str) -> Vec<Cell> {
     input
-        .lines()
-        .map(|line| {
-            line.bytes()
-                .map(|c| match c {
-                    b'@' => Cell::Roll,
-                    _ => Cell::Empty,
-                })
-                .collect()
+        .bytes()
+        .filter(|b| *b != b'\n')
+        .map(|b| match b {
+            b'@' => Cell::Roll,
+            _ => Cell::Empty,
         })
         .collect()
 }
 
-fn get_adjacent(grid: &[Vec<Cell>], x: i32, y: i32) -> impl Iterator<Item = Cell> + '_ {
-    let width = grid.len() as i32;
-    let height = grid.len() as i32;
+fn get_adjacent(grid: &[Cell], grid_len: i32, x: i32, y: i32) -> impl Iterator<Item = Cell> + '_ {
+    let width = grid_len;
+    let height = grid_len;
     [
         (1, 0),
         (-1, 0),
@@ -41,21 +38,22 @@ fn get_adjacent(grid: &[Vec<Cell>], x: i32, y: i32) -> impl Iterator<Item = Cell
     .map(move |(delta_x, delta_y)| {
         let new_x = x + delta_x;
         let new_y = y + delta_y;
-        grid[new_y as usize][new_x as usize]
+        grid[(new_y * width + new_x) as usize]
     })
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
     let grid = parse(input);
+    let grid_size = grid.len().isqrt();
 
     let mut safe_rolls = 0;
-    for (j, row) in grid.iter().enumerate() {
-        for (i, cell) in row.iter().enumerate() {
-            if *cell == Cell::Empty {
+    for y in 0..grid_size {
+        for x in 0..grid_size {
+            if grid[y * grid_size + x] == Cell::Empty {
                 continue;
             }
 
-            if get_adjacent(&grid, i as i32, j as i32)
+            if get_adjacent(&grid, grid_size as i32, x as i32, y as i32)
                 .filter(|cell| *cell == Cell::Roll)
                 .count()
                 < 4
@@ -69,23 +67,24 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 pub fn part_two(input: &str) -> Option<u64> {
     let mut grid = parse(input);
+    let grid_size = grid.len().isqrt();
 
     let mut total = 0;
     loop {
         let mut safe_rolls = 0;
-        for y in 0..grid.len() {
-            for x in 0..grid.len() {
-                if grid[y][x] == Cell::Empty {
+        for y in 0..grid_size {
+            for x in 0..grid_size {
+                if grid[y * grid_size + x] == Cell::Empty {
                     continue;
                 }
 
-                if get_adjacent(&grid, x as i32, y as i32)
+                if get_adjacent(&grid, grid_size as i32, x as i32, y as i32)
                     .filter(|cell| *cell == Cell::Roll)
                     .count()
                     < 4
                 {
                     safe_rolls += 1;
-                    grid[y][x] = Cell::Removed;
+                    grid[y * grid_size + x] = Cell::Removed;
                 }
             }
         }
