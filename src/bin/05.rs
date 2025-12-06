@@ -1,5 +1,6 @@
 advent_of_code::solution!(5);
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Range {
     start: u64,
     end: u64,
@@ -32,7 +33,7 @@ fn parse(input: &str) -> (Vec<Range>, Vec<u64>) {
 }
 
 fn find_overlap(ranges: &[Range]) -> Option<(usize, usize)> {
-    for (i, range1) in ranges.iter().enumerate() {
+    for (i, range1) in ranges.iter().enumerate().rev() {
         for (j, range2) in ranges.iter().enumerate().skip(i + 1) {
             if !range1.contains(range2) {
                 return Some((i, j));
@@ -43,7 +44,9 @@ fn find_overlap(ranges: &[Range]) -> Option<(usize, usize)> {
 }
 
 pub fn part_one(input: &str) -> Option<u64> {
-    let (ranges, values) = parse(input);
+    let (ranges, mut values) = parse(input);
+
+    values.sort();
 
     let mut total = 0;
     'ingredient: for value in values {
@@ -59,6 +62,8 @@ pub fn part_one(input: &str) -> Option<u64> {
 
 pub fn part_two(input: &str) -> Option<u64> {
     let (mut ranges, _) = parse(input);
+
+    ranges.sort();
 
     while let Some((i, j)) = find_overlap(&ranges) {
         let range1 = ranges.remove(j);
