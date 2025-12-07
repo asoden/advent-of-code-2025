@@ -9,7 +9,6 @@ enum Cell {
 
 #[derive(Debug)]
 struct Grid {
-    start: (usize, usize),
     grid: Vec<Cell>,
     width: usize,
     height: usize,
@@ -24,26 +23,20 @@ impl Grid {
 
 impl From<&str> for Grid {
     fn from(value: &str) -> Self {
-        let mut start = (0, 0);
         let width = value.find('\n').unwrap();
         let grid: Vec<Cell> = value
             .bytes()
             .filter(|b| *b != b'\n')
-            .enumerate()
-            .map(|(i, b)| match b {
-                b'S' => {
-                    start = (i % width, i / width);
-                    Cell::Start
-                }
+            .map(|b| match b {
+                b'S' => Cell::Start,
                 b'^' => Cell::Split,
-                _ => Cell::Empty
+                _ => Cell::Empty,
             })
             .collect();
 
         let height = grid.len() / width;
 
         Self {
-            start,
             grid,
             width,
             height,
@@ -57,32 +50,23 @@ pub fn part_one(input: &str) -> Option<u64> {
     let grid: Grid = input.into();
 
     let mut current_window = vec![0; grid.width];
-    let mut next = vec![0; grid.width];
+    let start = grid.width / 2;
 
-    current_window[grid.start.0] = 1;
+    current_window[start] = 1;
 
-    for y in 0..grid.height {
-        for (x, &val) in current_window.iter().enumerate() {
-            let present = val;
-            if present != 0 {
-                if let Some(Cell::Split) = grid.get_cell(x, y) {
-                    split_count += 1;
+    for (y, dy) in (0..grid.height).skip(2).step_by(2).enumerate() {
+        for x in ((start - y)..(start + y + 1)).step_by(2) {
+            let present = current_window[x];
+            if present != 0
+                && let Some(Cell::Split) = grid.get_cell(x, dy)
+            {
+                split_count += 1;
 
-                    if x > 0 {
-                        next[x - 1] = val;
-                    }
-
-                    if x < grid.width - 1 {
-                        next[x + 1] = val;
-                    }
-                } else {
-                    next[x] = val;
-                }
+                current_window[x - 1] = 1;
+                current_window[x + 1] = 1;
+                current_window[x] = 0;
             }
         }
-
-        (current_window, next) = (next, current_window);
-        next.fill(0);
     }
 
     Some(split_count)
@@ -91,32 +75,23 @@ pub fn part_one(input: &str) -> Option<u64> {
 pub fn part_two(input: &str) -> Option<u64> {
     let grid: Grid = input.into();
 
+    let start = grid.width / 2;
+
     let mut current_window = vec![0; grid.width];
-    let mut next = vec![0; grid.width];
 
-    current_window[grid.start.0] = 1;
+    current_window[start] = 1;
 
-    for y in 0..grid.height {
-        for (x, &val) in current_window.iter().enumerate() {
-            let present = val;
-            if present > 0 {
-                if let Some(Cell::Split) = grid.get_cell(x, y) {
-
-                    if x > 0 {
-                        next[x - 1] += val;
-                    }
-
-                    if x < grid.width - 1 {
-                        next[x + 1] += val;
-                    }
-                } else {
-                    next[x] += val;
-                }
+    for (y, dy) in (0..grid.height).skip(2).step_by(2).enumerate() {
+        for x in ((start - y)..(start + y + 1)).step_by(2) {
+            let present = current_window[x];
+            if present != 0
+                && let Some(Cell::Split) = grid.get_cell(x, dy)
+            {
+                current_window[x - 1] += present;
+                current_window[x + 1] += present;
+                current_window[x] = 0;
             }
         }
-
-        (current_window, next) = (next, current_window);
-        next.fill(0);
     }
 
     Some(current_window.iter().sum())
