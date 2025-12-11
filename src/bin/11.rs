@@ -6,7 +6,7 @@ use ahash::{HashMap, HashMapExt};
 
 fn path_count<'a>(
     cache: &mut HashMap<(&'a str, bool, bool), u64>,
-    network: &'a HashMap<String, Vec<String>>,
+    network: &'a HashMap<&str, Vec<&str>>,
     node: &'a str,
     mut dac: bool,
     mut fft: bool,
@@ -28,16 +28,15 @@ fn path_count<'a>(
     cache[&key]
 }
 
-fn parse(input: &str) -> HashMap<String, Vec<String>> {
+fn parse(input: &str) -> HashMap<&str, Vec<&str>> {
     let mut mapping = HashMap::new();
 
     input.lines().for_each(|line| {
         let (left, right) = line.split_once(": ").unwrap();
         let nodes = right
             .split_ascii_whitespace()
-            .map(|x| x.into())
-            .collect::<Vec<String>>();
-        mapping.insert(left.into(), nodes);
+            .collect::<Vec<&str>>();
+        mapping.insert(left, nodes);
     });
 
     mapping
@@ -54,7 +53,7 @@ pub fn part_one(input: &str) -> Option<u64> {
 
     let mut path_count = 0;
 
-    while let Some(node) = queue.pop_front() {
+    while let Some(&node) = queue.pop_front() {
         if node == "out" {
             path_count += 1;
         } else {
