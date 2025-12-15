@@ -169,9 +169,10 @@ pub fn part_two(input: &str) -> Option<u64> {
                         y: point1.y,
                     },
                 )
-                && !lines_crossed(&points, point1, point2) {
-                    max = area;
-                }
+                && !lines_crossed(&points, point1, point2)
+            {
+                max = area;
+            }
         }
     }
     Some(max)

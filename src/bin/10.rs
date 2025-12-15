@@ -139,11 +139,7 @@ fn calculate_part2_fitness(schematic: &Schematic, organism: &mut Organism) {
                 // let on_count = genome.iter().filter(|g| **g == 1).count() as u64;
 
                 // dbg!(genome);
-                if sub_total == goal {
-                    0
-                } else {
-                    WRONG_FACTOR
-                }
+                if sub_total == goal { 0 } else { WRONG_FACTOR }
             })
             .sum::<u64>();
 
@@ -178,12 +174,13 @@ fn parse(input: &str, part1: bool) -> Vec<Schematic> {
                 })
                 .collect();
 
-            let joltages = joltages[1..joltages.len() -1].split(',').map(|jolt| {
-                jolt.parse().unwrap()
-            }).collect();
+            let joltages = joltages[1..joltages.len() - 1]
+                .split(',')
+                .map(|jolt| jolt.parse().unwrap())
+                .collect();
 
             Schematic {
-                goals: if part1 {lights} else {joltages},
+                goals: if part1 { lights } else { joltages },
                 wirings,
             }
         })

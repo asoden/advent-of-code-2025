@@ -33,9 +33,7 @@ fn parse(input: &str) -> HashMap<&str, Vec<&str>> {
 
     input.lines().for_each(|line| {
         let (left, right) = line.split_once(": ").unwrap();
-        let nodes = right
-            .split_ascii_whitespace()
-            .collect::<Vec<&str>>();
+        let nodes = right.split_ascii_whitespace().collect::<Vec<&str>>();
         mapping.insert(left, nodes);
     });
 
