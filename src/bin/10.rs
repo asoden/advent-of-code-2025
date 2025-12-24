@@ -5,15 +5,15 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 const POPULATION_SIZE: usize = 1000;
 const RANDOM_RANGE_PART1: u64 = 2;
-const RANDOM_RANGE_PART2: u64 = 280;
+const CERTAINTY_THRESHOLD: u32 = 30;
 const WRONG_FACTOR: u64 = 10000;
-const GENERATIONS: usize = 1000;
 
 #[derive(Debug, Clone)]
 struct Organism {
     fitness: u64,
     genome: Vec<u64>,
 }
+
 impl Organism {
     #[inline]
     fn calculate_fitness(&mut self, operator: impl Fn(&[u64]) -> u64) {
@@ -53,7 +53,6 @@ fn create_genome(genome_size: usize, max_range: u64) -> Vec<u64> {
     let mut rng = rand::rng();
 
     for _ in 0..genome_size {
-        // genome = vec![0, 0, 1, 0, 0, 0];
         genome.push(rng.random_range(0..max_range));
     }
     genome
@@ -80,66 +79,18 @@ fn calculate_part1_fitness(schematic: &Schematic, organism: &mut Organism) {
             .iter()
             .enumerate()
             .map(|(i, &goal)| {
-                let mut sub_total = genome
+                let sub_total = genome
                     .iter()
                     .zip(schematic.wirings.iter())
                     .filter(|(_, wires)| wires.contains(&(i as u64)))
-                    .map(|(gene, wire)| {
-                        // dbg!(wire);
-                        // dbg!(gene);
-                        gene
-                    })
+                    .map(|(gene, _)| gene)
                     .sum::<u64>();
 
-                // dbg!(sub_total);
-                // if sub_total == 0 {
-                //     return 1_000_000_000;
-                // }
-
-                // let on_count = genome.iter().filter(|g| **g == 1).count() as u64;
-
-                // dbg!(genome);
                 if sub_total % 2 == goal {
                     0
                 } else {
                     WRONG_FACTOR
                 }
-            })
-            .sum::<u64>();
-
-        let fitness = (off_factor * WRONG_FACTOR) + (genome_total);
-        if fitness == 0 { u64::MAX } else { fitness }
-    });
-}
-
-fn calculate_part2_fitness(schematic: &Schematic, organism: &mut Organism) {
-    let genome_total = organism.genome.iter().sum::<u64>();
-    organism.calculate_fitness(|genome| {
-        let off_factor = schematic
-            .goals
-            .iter()
-            .enumerate()
-            .map(|(i, &goal)| {
-                let mut sub_total = genome
-                    .iter()
-                    .zip(schematic.wirings.iter())
-                    .filter(|(_, wires)| wires.contains(&(i as u64)))
-                    .map(|(gene, wire)| {
-                        // dbg!(wire);
-                        // dbg!(gene);
-                        gene
-                    })
-                    .sum::<u64>();
-
-                // dbg!(sub_total);
-                // if sub_total == 0 {
-                //     return 1_000_000_000;
-                // }
-
-                // let on_count = genome.iter().filter(|g| **g == 1).count() as u64;
-
-                // dbg!(genome);
-                if sub_total == goal { 0 } else { WRONG_FACTOR }
             })
             .sum::<u64>();
 
@@ -190,24 +141,23 @@ fn parse(input: &str, part1: bool) -> Vec<Schematic> {
 pub fn part_one(input: &str) -> Option<u64> {
     let schematics = parse(input, true);
 
-    // let schematics = [schematics[0].clone()];
-
     let total = schematics
         .par_iter()
         .map(|schematic| {
             let mut rng = rand::rng();
-            let mut generation_count = 0;
+            // let mut generation_count = 0;
+            let mut certainty = 0;
             let mut generation = create_generation(schematic, RANDOM_RANGE_PART1);
-
-            // dbg!(&generation);
+            let mut next = Vec::with_capacity(POPULATION_SIZE);
 
             for organism in generation.iter_mut() {
-                calculate_part2_fitness(&schematics[0], organism);
+                calculate_part1_fitness(&schematics[0], organism);
             }
 
             generation.sort_by_key(|organism| organism.fitness);
-            for _ in 0..GENERATIONS {
-                let mut new_generation = Vec::with_capacity(POPULATION_SIZE);
+
+            let mut best = generation[0].fitness;
+            while certainty < CERTAINTY_THRESHOLD {
 
                 // THE CREME RISES TO THE TOP! YEAH!!!!
                 // take the top 10% unaltered
@@ -216,7 +166,7 @@ pub fn part_one(input: &str) -> Option<u64> {
                     .iter()
                     .take(cream_of_the_crop)
                     .for_each(|organism| {
-                        new_generation.push(organism.clone());
+                        next.push(organism.clone());
                     });
 
                 // from the fittest half of the population reproduce
@@ -227,27 +177,32 @@ pub fn part_one(input: &str) -> Option<u64> {
                     let idx = rng.random_range(0..POPULATION_SIZE / 2);
                     let parent2 = &generation[idx];
                     let offspring = parent1.reproduce(parent2, RANDOM_RANGE_PART1);
-                    new_generation.push(offspring);
+                    next.push(offspring);
                 }
 
                 // calculate fitness
-                for organism in new_generation.iter_mut() {
+                for organism in next.iter_mut() {
                     calculate_part1_fitness(schematic, organism);
                 }
-                generation = new_generation;
+                (generation, next) = (next, generation);
 
                 // sort by fitness
                 generation.sort_by_key(|organism| organism.fitness);
 
+                next.clear();
                 // println!(
                 //     "Generation: {} \tGenome: {:?}\tFitness: {}",
                 //     generation_count, generation[0].genome, generation[0].fitness
                 // );
 
-                generation_count += 1;
-            }
+                // generation_count += 1;
 
-            // dbg!(&generation);
+                if generation[0].fitness < best {
+                    best = generation[0].fitness;
+                } else {
+                    certainty += 1;
+                }
+            }
 
             generation[0].genome.iter().filter(|&&i| i != 0).count() as u64
         })
@@ -257,71 +212,8 @@ pub fn part_one(input: &str) -> Option<u64> {
 }
 
 pub fn part_two(input: &str) -> Option<u64> {
-    let schematics = parse(input, false);
-    // let schematics = [schematics[0].clone()];
 
-    let total = schematics
-        .par_iter()
-        .map(|schematic| {
-            let mut rng = rand::rng();
-            let mut generation_count = 0;
-            let mut generation = create_generation(schematic, RANDOM_RANGE_PART2);
-
-            // dbg!(&generation);
-
-            for organism in generation.iter_mut() {
-                calculate_part1_fitness(&schematics[0], organism);
-            }
-
-            generation.sort_by_key(|organism| organism.fitness);
-            for _ in 0..GENERATIONS {
-                let mut new_generation = Vec::with_capacity(generation.len());
-
-                // THE CREME RISES TO THE TOP! YEAH!!!!
-                // take the top 10% unaltered
-                let cream_of_the_crop = (10 * POPULATION_SIZE) / 100;
-                generation
-                    .iter()
-                    .take(cream_of_the_crop)
-                    .for_each(|organism| {
-                        new_generation.push(organism.clone());
-                    });
-
-                // from the fittest half of the population reproduce
-                let rest = (90 * POPULATION_SIZE) / 100;
-                for _ in 0..rest {
-                    let idx = rng.random_range(0..POPULATION_SIZE / 2);
-                    let parent1 = &generation[idx];
-                    let idx = rng.random_range(0..POPULATION_SIZE / 2);
-                    let parent2 = &generation[idx];
-                    let offspring = parent1.reproduce(parent2, RANDOM_RANGE_PART2);
-                    new_generation.push(offspring);
-                }
-
-                // calculate fitness
-                for organism in new_generation.iter_mut() {
-                    calculate_part2_fitness(schematic, organism);
-                }
-                generation = new_generation;
-
-                // sort by fitness
-                generation.sort_by_key(|organism| organism.fitness);
-
-                // println!(
-                //     "Generation: {} \tGenome: {:?}\tFitness: {}",
-                //     generation_count, generation[0].genome, generation[0].fitness
-                // );
-
-                generation_count += 1;
-            }
-
-            // dbg!(&generation);
-
-            generation[0].genome.iter().sum::<u64>()
-        })
-        .sum();
-
-    Some(total)
+    None
 }
 
 #[cfg(test)]
